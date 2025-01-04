@@ -1,10 +1,13 @@
 import { useState } from "react";
 import "./App.css";
+const apiUrl = import.meta.env.VITE_backend_url;
 
 function App() {
   const coins = [0.01, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 50, 100, 1000];
 
   const [amount, setAmount] = useState(0);
+  const [result, setResult] = useState(null);
+  const [error, setError] = useState(null); 
 
   const handleAmountChange = (e) => {
     setAmount(e.target.value);
@@ -12,10 +15,41 @@ function App() {
 
   const [selectedCoins, setSelectedCoins] = useState([]);
 
-  const calculateChange = (amount, coins) => {
+  const calculateChange = async (amount, coins) => {
     coins.sort((a, b) => b - a).reverse();
-    console.log(amount, coins);
-    console.log("Calculating change");
+
+    const data = {
+      coins: coins.map((coin) => parseFloat(coin)),
+      amount: parseFloat(amount)
+    };
+
+    console.log("Data to send:", data);
+
+    try {
+      // console.log(apiUrl)
+      const response = await fetch(`${apiUrl}/coin-change`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(data),
+      });
+
+      if (!response.ok) {
+      const errorMessage = await response.text(); 
+      throw new Error(errorMessage);
+      }
+
+      const resultData = await response.json();
+      console.log("response :", resultData);
+      setResult(resultData.combination);
+      setError(null); 
+    } catch (error) {
+      console.error("error:", error);
+      setError(`Failed to send request: ${error.message}`);
+      setResult(null);
+    }
+  
   }
 
   return (
@@ -63,6 +97,17 @@ function App() {
           }
           }
         >Submit your test!</button>
+      </div>
+
+
+      <div className="result-container">
+        {error && <p className="error-message">{error}</p>}
+        {result && (
+          <>
+            <h2>Calculation Result:</h2>
+            <p>{result.join(", ")}</p> 
+          </>
+        )}
       </div>
     </>
   );
